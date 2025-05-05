@@ -3,7 +3,7 @@ cat("\014")
 rm(list = ls())
 
 # Required packages
-packages <- c("httr", "jsonlite", "googlesheets4", "base64enc", "dplyr", "string", "lubridate")
+packages <- c("httr", "jsonlite", "googlesheets4", "base64enc", "dplyr", "stringi", "lubridate")
 
 # Install and load missing packages
 for (pkg in packages) {
