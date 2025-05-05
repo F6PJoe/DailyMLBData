@@ -6,8 +6,8 @@ on:
     # Every day at 5:35 AM ET (9:35 AM UTC)
     - cron: '35 9 * * *'
 
-    # Every day at 12:05 PM ET (4:05 PM UTC)
-    - cron: '5 16 * * *'
+    # Every day at 11:35 AM ET (3:35 PM UTC)
+    - cron: '35 15 * * *'
 
     # Every day at 5:35 PM ET (9:35 PM UTC)
     - cron: '35 21 * * *'
