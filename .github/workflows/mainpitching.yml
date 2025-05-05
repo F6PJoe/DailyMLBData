@@ -37,7 +37,7 @@ jobs:
 
     - name: Install R packages
       run: |
-        Rscript -e "install.packages(c('googlesheets4', 'dplyr', 'httr', 'base64enc', 'jsonlite', 'stringi'), repos = 'https://cloud.r-project.org')"
+        Rscript -e "install.packages(c('googlesheets4', 'dplyr', 'httr', 'base64enc', 'jsonlite', 'stringi', 'lubridate'), repos = 'https://cloud.r-project.org')"
 
     - name: Check installed R packages
       run: |
