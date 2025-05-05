@@ -1,4 +1,4 @@
-name: Run Daily MLB Hitter Data R Script
+name: Run Daily MLB Pitching Data R Script
 
 on:
   workflow_dispatch:  # Enables manual trigger from GitHub UI
