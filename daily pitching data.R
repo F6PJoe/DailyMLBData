@@ -3,7 +3,7 @@ cat("\014")
 rm(list = ls())
 
 # Required packages
-packages <- c("httr", "jsonlite", "googlesheets4", "base64enc", "dplyr", "stringi")
+packages <- c("httr", "jsonlite", "googlesheets4", "base64enc", "dplyr", "string", "lubridate")
 
 # Install and load missing packages
 for (pkg in packages) {
@@ -307,7 +307,7 @@ cat("Data has been saved to the Google Sheet:", sheet_id, "\n")
 
 
 # Set the date you want to pull
-date <- Sys.Date()  # or use "2025-05-04"
+date <- with_tz(Sys.time(), "America/New_York") |> as.Date()
 
 # API URL
 url <- paste0("https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=", date, "&hydrate=probablePitcher(note),team")
