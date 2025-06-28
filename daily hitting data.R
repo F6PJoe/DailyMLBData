@@ -53,7 +53,7 @@ url_end_date_str <- format(url_end_date, "%Y-%m-%d")  # End date for URL (yester
 construct_url <- function(start_date_str, season) {
   return(sprintf(
     "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos=all&stats=bat&lg=all&qual=1&season=%s&season1=%s&startdate=%s&enddate=%s&month=%s&hand=&team=0&pageitems=2000000000&pagenum=1&ind=0&rost=0&players=&type=8&postseason=&sortdir=default&sortstat=WAR",
-    season, season, start_date_str, url_end_date_str, ifelse(season == "2025", "0", "1000")
+    season, season, start_date_str, url_end_date_str, ifelse(season == "2025", "1000", "0")
   ))
 }
 
