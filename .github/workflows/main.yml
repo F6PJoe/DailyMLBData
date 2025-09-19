@@ -2,15 +2,15 @@ name: Run Daily MLB Hitter Data R Script
 
 on:
   workflow_dispatch:  # Enables manual trigger from GitHub UI
-  schedule:
+  #schedule:
     # Every day at 5:30 AM ET (9:30 AM UTC)
-    - cron: '30 9 * * *'  # 9:30 AM UTC (5:30 AM ET)
+    #- cron: '30 9 * * *'  # 9:30 AM UTC (5:30 AM ET)
     
     # Every day at 11:30 AM ET (3:30 PM UTC)
-    - cron: '30 15 * * *'  # 3:30 PM UTC (11:30 AM ET)
+    #- cron: '30 15 * * *'  # 3:30 PM UTC (11:30 AM ET)
 
     # Every day at 5:30 PM ET (9:30 PM UTC)
-    - cron: '30 21 * * *'  # 9:30 PM UTC (5:30 PM ET)
+    #- cron: '30 21 * * *'  # 9:30 PM UTC (5:30 PM ET)
 
 jobs:
   run_script:
