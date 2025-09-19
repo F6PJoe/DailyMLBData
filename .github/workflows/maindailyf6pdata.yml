@@ -2,9 +2,9 @@ name: Run F6P MLB Daily MLB Data R Script
 
 on:
   workflow_dispatch:  # Enables manual trigger from GitHub UI
-  schedule:
+  #schedule:
     # Every day at 7:45 AM ET (11:45 AM UTC)
-    - cron: '45 11 * * *' 
+    #- cron: '45 11 * * *' 
 
 jobs:
   run_script:
