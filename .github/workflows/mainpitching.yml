@@ -2,15 +2,15 @@ name: Run Daily MLB Pitching Data R Script
 
 on:
   workflow_dispatch:  # Enables manual trigger from GitHub UI
-  schedule:
+  #schedule:
     # Every day at 5:35 AM ET (9:35 AM UTC)
-    - cron: '35 9 * * *'
+    #- cron: '35 9 * * *'
 
     # Every day at 11:35 AM ET (3:35 PM UTC)
-    - cron: '35 15 * * *'
+    #- cron: '35 15 * * *'
 
     # Every day at 5:35 PM ET (9:35 PM UTC)
-    - cron: '35 21 * * *'
+    #- cron: '35 21 * * *'
 
 jobs:
   run_script:
