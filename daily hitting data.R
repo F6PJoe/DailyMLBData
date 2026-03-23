@@ -22,8 +22,8 @@ end_date <- Sys.Date()
 url_end_date <- end_date - 1  # Use yesterday's date for the URL
 
 # Reference dates
-season_start_date <- as.Date("2025-03-27")  # First day of 2025 season
-fallback_start_date <- as.Date("2024-09-29")  # Start point for fallback data
+season_start_date <- as.Date("2026-03-25")  # First day of 2025 season
+fallback_start_date <- as.Date("2025-09-28")  # Start point for fallback data
 
 # Calculate days since the season started
 days_since_season_start <- as.numeric(end_date - season_start_date)
@@ -53,14 +53,14 @@ url_end_date_str <- format(url_end_date, "%Y-%m-%d")  # End date for URL
 construct_url <- function(start_date_str, season) {
   sprintf(
     "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos=all&stats=bat&lg=all&qual=1&season=%s&season1=%s&startdate=%s&enddate=%s&month=%s&hand=&team=0&pageitems=2000000000&pagenum=1&ind=0&rost=0&players=&type=8&postseason=&sortdir=default&sortstat=WAR",
-    season, season, start_date_str, url_end_date_str, ifelse(season == "2025", "1000", "0")
+    season, season, start_date_str, url_end_date_str, ifelse(season == "2026", "1000", "0")
   )
 }
 
 # Generate URLs
-hitting_7d_url <- construct_url(start_date_7d_str, ifelse(days_since_season_start >= 7, "2025", "2024"))
-hitting_14d_url <- construct_url(start_date_14d_str, ifelse(days_since_season_start >= 14, "2025", "2024"))
-hitting_30d_url <- construct_url(start_date_30d_str, ifelse(days_since_season_start >= 30, "2025", "2024"))
+hitting_7d_url <- construct_url(start_date_7d_str, ifelse(days_since_season_start >= 7, "2026", "2025"))
+hitting_14d_url <- construct_url(start_date_14d_str, ifelse(days_since_season_start >= 14, "2026", "2025"))
+hitting_30d_url <- construct_url(start_date_30d_str, ifelse(days_since_season_start >= 30, "2026", "2025"))
 
 # Print URLs for verification
 print(hitting_7d_url)
@@ -68,10 +68,10 @@ print(hitting_14d_url)
 print(hitting_30d_url)
 
 # Active hitters URL
-activehittingurl <- "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos=all&stats=bat&lg=all&qual=2&season=2025&season1=2025&startdate=2025-03-01&enddate=2025-11-01&month=0&hand=&team=0&pageitems=2000000000&pagenum=1&ind=0&rost=1&players=&type=8&postseason=&sortdir=default&sortstat=WAR"
+activehittingurl <- "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos=all&stats=bat&lg=all&qual=2&season=2026&season1=2026&startdate=2026-03-01&enddate=2026-11-01&month=0&hand=&team=0&pageitems=2000000000&pagenum=1&ind=0&rost=1&players=&type=8&postseason=&sortdir=default&sortstat=WAR"
 
 # Hitting URL
-hittingurl <- "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos=all&stats=bat&lg=all&qual=0&season=2025&season1=2025&startdate=2025-03-01&enddate=2025-11-01&month=0&hand=&team=0&pageitems=2000000000&pagenum=1&ind=0&rost=0&players=&type=8&postseason=&sortdir=default&sortstat=WAR"
+hittingurl <- "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos=all&stats=bat&lg=all&qual=0&season=2026&season1=2026&startdate=2026-03-01&enddate=2026-11-01&month=0&hand=&team=0&pageitems=2000000000&pagenum=1&ind=0&rost=0&players=&type=8&postseason=&sortdir=default&sortstat=WAR"
 
 # --- Active Hitters ---
 responseactive <- GET(activehittingurl)
