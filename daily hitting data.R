@@ -188,15 +188,9 @@ if (!is.null(df7d) && nrow(df7d) > 0) {
       k_pct7d = `K%`
     ) %>%
     mutate(
-      wOBA7d = as.numeric(wOBA7d),
-      ISO7d = as.numeric(ISO7d),
-      wrc7d = as.numeric(wrc7d),
-      k_pct7d = as.numeric(k_pct7d)*100
-    ) %>%
-    mutate(
-      wOBA7d = formatC(wOBA7d, format = "f", digits = 3),
-      ISO7d = formatC(ISO7d, format = "f", digits = 3),
-      k_pct7d = formatC(k_pct7d, format = "f", digits = 1)
+      wOBA7d = formatC(as.numeric(wOBA7d), format = "f", digits = 3),
+      ISO7d = formatC(as.numeric(ISO7d), format = "f", digits = 3),
+      k_pct7d = formatC(as.numeric(k_pct7d) * 100, format = "f", digits = 1)  # Just multiply by 100 here
     )
   colnames(filtered_df7d) <- c("Player", "ID", "Team", "wOBA7d", "ISO7d", "wRC+7d", "K%7d")
   write_sheet(filtered_df7d, ss = sheet_id, sheet = "MLB Hitter 7d Data")
@@ -220,15 +214,9 @@ if (!is.null(df14d) && nrow(df14d) > 0) {
       k_pct14d = `K%`
     ) %>%
     mutate(
-      wOBA14d = as.numeric(wOBA14d),
-      ISO14d = as.numeric(ISO14d),
-      wrc14d = as.numeric(wrc14d),
-      k_pct14d = as.numeric(k_pct14d)*100
-    ) %>%
-    mutate(
-      wOBA14d = formatC(wOBA14d, format = "f", digits = 3),
-      ISO14d = formatC(ISO14d, format = "f", digits = 3),
-      k_pct14d = formatC(k_pct14d, format = "f", digits = 1)
+      wOBA14d = formatC(as.numeric(wOBA14d), format = "f", digits = 3),
+      ISO14d = formatC(as.numeric(ISO14d), format = "f", digits = 3),
+      k_pct14d = formatC(as.numeric(k_pct14d) * 100, format = "f", digits = 1)
     )
   colnames(filtered_df14d) <- c("Player", "ID", "Team", "wOBA14d", "ISO14d", "wRC+14d", "K%14d")
   write_sheet(filtered_df14d, ss = sheet_id, sheet = "MLB Hitter 14d Data")
@@ -252,15 +240,9 @@ if (!is.null(df30d) && nrow(df30d) > 0) {
       k_pct30d = `K%`
     ) %>%
     mutate(
-      wOBA30d = as.numeric(wOBA30d),
-      ISO30d = as.numeric(ISO30d),
-      wrc30d = as.numeric(wrc30d),
-      k_pct30d = as.numeric(k_pct30d)*100
-    ) %>%
-    mutate(
-      wOBA30d = formatC(wOBA30d, format = "f", digits = 3),
-      ISO30d = formatC(ISO30d, format = "f", digits = 3),
-      k_pct30d = formatC(k_pct30d, format = "f", digits = 1)
+      wOBA30d = formatC(as.numeric(wOBA30d), format = "f", digits = 3),
+      ISO30d = formatC(as.numeric(ISO30d), format = "f", digits = 3),
+      k_pct30d = formatC(as.numeric(k_pct30d) * 100, format = "f", digits = 1)
     )
   colnames(filtered_df30d) <- c("Player", "ID", "Team", "wOBA30d", "ISO30d", "wRC+30d", "K%30d")
   write_sheet(filtered_df30d, ss = sheet_id, sheet = "MLB Hitter 30d Data")
