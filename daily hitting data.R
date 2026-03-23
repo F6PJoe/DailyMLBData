@@ -149,21 +149,23 @@ if (!is.null(df) && nrow(df) > 0) {
       xwOBA = xwOBA
     ) %>%
     mutate(
-      AVG = formatC(as.numeric(AVG), format = "f", digits = 3),
-      OBP = formatC(as.numeric(OBP), format = "f", digits = 3),
-      OPS = formatC(as.numeric(OPS), format = "f", digits = 3),
-      SLG = formatC(as.numeric(SLG), format = "f", digits = 3),
-      BABIP = formatC(as.numeric(BABIP), format = "f", digits = 3),
-      xBA = formatC(as.numeric(xBA), format = "f", digits = 3),
-      xSLG = formatC(as.numeric(xSLG), format = "f", digits = 3),
-      xwOBA = formatC(as.numeric(xwOBA), format = "f", digits = 3),
-      Barrel_pct = formatC(as.numeric(Barrel_pct) * 100, format = "f", digits = 1),
-      HardHit_pct = formatC(as.numeric(HardHit_pct) * 100, format = "f", digits = 1)
-    )
-  
-  # Convert numeric columns back to numeric
-  filtered_df <- filtered_df %>% mutate(across(c(AVG, OBP, OPS, SLG, BABIP, xBA, xSLG, xwOBA, Barrel_pct, HardHit_pct), as.numeric))
-  filtered_df <- filtered_df %>% mutate(across(everything(), ~ ifelse(is.na(.), "", .)))
+      AVG = as.numeric(AVG),
+      OBP = as.numeric(OBP),
+      OPS = as.numeric(OPS),
+      SLG = as.numeric(SLG),
+      BABIP = as.numeric(BABIP),
+      PA = as.numeric(PA),
+      R = as.numeric(R),
+      HR = as.numeric(HR),
+      RBI = as.numeric(RBI),
+      SB = as.numeric(SB),
+      Barrel_pct = as.numeric(Barrel_pct) * 100,
+      HardHit_pct = as.numeric(HardHit_pct) * 100,
+      xBA = as.numeric(xBA),
+      xSLG = as.numeric(xSLG),
+      xwOBA = as.numeric(xwOBA)
+    ) %>%
+    mutate(across(everything(), ~ ifelse(is.na(.), "", .)))
   
   write_sheet(filtered_df, ss = sheet_id, sheet = "MLB Hitter Data")
   cat("Full season hitters saved to Google Sheet.\n")
@@ -188,9 +190,10 @@ if (!is.null(df7d) && nrow(df7d) > 0) {
       k_pct7d = `K%`
     ) %>%
     mutate(
-      wOBA7d = formatC(as.numeric(wOBA7d), format = "f", digits = 3),
-      ISO7d = formatC(as.numeric(ISO7d), format = "f", digits = 3),
-      k_pct7d = formatC(as.numeric(k_pct7d) * 100, format = "f", digits = 1)  # Just multiply by 100 here
+      wOBA7d = as.numeric(wOBA7d),
+      ISO7d = as.numeric(ISO7d),
+      wrc7d = as.numeric(wrc7d),
+      k_pct7d = as.numeric(k_pct7d) * 100
     )
   colnames(filtered_df7d) <- c("Player", "ID", "Team", "wOBA7d", "ISO7d", "wRC+7d", "K%7d")
   write_sheet(filtered_df7d, ss = sheet_id, sheet = "MLB Hitter 7d Data")
@@ -214,9 +217,10 @@ if (!is.null(df14d) && nrow(df14d) > 0) {
       k_pct14d = `K%`
     ) %>%
     mutate(
-      wOBA14d = formatC(as.numeric(wOBA14d), format = "f", digits = 3),
-      ISO14d = formatC(as.numeric(ISO14d), format = "f", digits = 3),
-      k_pct14d = formatC(as.numeric(k_pct14d) * 100, format = "f", digits = 1)
+      wOBA14d = as.numeric(wOBA14d),
+      ISO14d = as.numeric(ISO14d),
+      wrc14d = as.numeric(wrc14d),
+      k_pct14d = as.numeric(k_pct14d) * 100
     )
   colnames(filtered_df14d) <- c("Player", "ID", "Team", "wOBA14d", "ISO14d", "wRC+14d", "K%14d")
   write_sheet(filtered_df14d, ss = sheet_id, sheet = "MLB Hitter 14d Data")
@@ -240,9 +244,10 @@ if (!is.null(df30d) && nrow(df30d) > 0) {
       k_pct30d = `K%`
     ) %>%
     mutate(
-      wOBA30d = formatC(as.numeric(wOBA30d), format = "f", digits = 3),
-      ISO30d = formatC(as.numeric(ISO30d), format = "f", digits = 3),
-      k_pct30d = formatC(as.numeric(k_pct30d) * 100, format = "f", digits = 1)
+      wOBA30d = as.numeric(wOBA30d),
+      ISO30d = as.numeric(ISO30d),
+      wrc30d = as.numeric(wrc30d),
+      k_pct30d = as.numeric(k_pct30d) * 100
     )
   colnames(filtered_df30d) <- c("Player", "ID", "Team", "wOBA30d", "ISO30d", "wRC+30d", "K%30d")
   write_sheet(filtered_df30d, ss = sheet_id, sheet = "MLB Hitter 30d Data")
@@ -250,3 +255,5 @@ if (!is.null(df30d) && nrow(df30d) > 0) {
 } else {
   cat("Skipping 30d Hitters sheet (no data).\n")
 }
+
+cat("\nScript completed successfully!\n")
