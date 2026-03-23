@@ -191,7 +191,7 @@ if (!is.null(df7d) && nrow(df7d) > 0) {
       wOBA7d = as.numeric(wOBA7d),
       ISO7d = as.numeric(ISO7d),
       wrc7d = as.numeric(wrc7d),
-      k_pct7d = as.numeric(k_pct7d)
+      k_pct7d = as.numeric(k_pct7d)*100
     ) %>%
     mutate(
       wOBA7d = formatC(wOBA7d, format = "f", digits = 3),
@@ -223,7 +223,7 @@ if (!is.null(df14d) && nrow(df14d) > 0) {
       wOBA14d = as.numeric(wOBA14d),
       ISO14d = as.numeric(ISO14d),
       wrc14d = as.numeric(wrc14d),
-      k_pct14d = as.numeric(k_pct14d)
+      k_pct14d = as.numeric(k_pct14d)*100
     ) %>%
     mutate(
       wOBA14d = formatC(wOBA14d, format = "f", digits = 3),
@@ -255,7 +255,7 @@ if (!is.null(df30d) && nrow(df30d) > 0) {
       wOBA30d = as.numeric(wOBA30d),
       ISO30d = as.numeric(ISO30d),
       wrc30d = as.numeric(wrc30d),
-      k_pct30d = as.numeric(k_pct30d)
+      k_pct30d = as.numeric(k_pct30d)*100
     ) %>%
     mutate(
       wOBA30d = formatC(wOBA30d, format = "f", digits = 3),
