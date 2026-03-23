@@ -135,68 +135,96 @@ cat("Full season hitters saved to Google Sheet.\n")
 
 # --- 7d, 14d, 30d hitters corrected ---
 
+# Helper function to safely process hitting data
+process_hitting_data <- function(response_obj, label) {
+  data_parsed <- content(response_obj, as = "text", encoding = "UTF-8") %>% fromJSON(flatten = TRUE)
+  
+  if (is.null(data_parsed) || length(data_parsed) == 0) {
+    cat(sprintf("No %s data available. Skipping %s sheet.\n", label, label))
+    return(NULL)
+  }
+  
+  # Extract the data array if it's nested
+  if ("data" %in% names(data_parsed)) {
+    return(as.data.frame(data_parsed$data))
+  } else if (is.data.frame(data_parsed)) {
+    return(data_parsed)
+  } else {
+    return(as.data.frame(data_parsed))
+  }
+}
+
 # 7d
 response7d <- GET(hitting_7d_url)
-df7d <- as.data.frame(content(response7d, as = "text", encoding = "UTF-8") %>% fromJSON(flatten = TRUE))
-filtered_df7d <- df7d %>%
-  select(
-    Player = PlayerNameRoute,
-    ID = playerid,
-    Team = TeamName,
-    wOBA7d = wOBA,
-    ISO7d = ISO,
-    wrc7d = wRC,
-    k_pct7d = `K%`
-  ) %>%
-  mutate(
-    wOBA7d = formatC(as.numeric(wOBA7d), format = "f", digits = 3),
-    ISO7d = formatC(as.numeric(ISO7d), format = "f", digits = 3),
-    k_pct7d = formatC(as.numeric(k_pct7d), format = "f", digits = 1)
-  )
-colnames(filtered_df7d) <- c("Player", "ID", "Team", "wOBA7d", "ISO7d", "wRC+7d", "K%7d")
-write_sheet(filtered_df7d, ss = sheet_id, sheet = "MLB Hitter 7d Data")
-cat("7d hitters saved to Google Sheet.\n")
+df7d <- process_hitting_data(response7d, "7d")
+
+if (!is.null(df7d)) {
+  filtered_df7d <- df7d %>%
+    select(
+      Player = PlayerNameRoute,
+      ID = playerid,
+      Team = TeamName,
+      wOBA7d = wOBA,
+      ISO7d = ISO,
+      wrc7d = wRC,
+      k_pct7d = `K%`
+    ) %>%
+    mutate(
+      wOBA7d = formatC(as.numeric(wOBA7d), format = "f", digits = 3),
+      ISO7d = formatC(as.numeric(ISO7d), format = "f", digits = 3),
+      k_pct7d = formatC(as.numeric(k_pct7d), format = "f", digits = 1)
+    )
+  colnames(filtered_df7d) <- c("Player", "ID", "Team", "wOBA7d", "ISO7d", "wRC+7d", "K%7d")
+  write_sheet(filtered_df7d, ss = sheet_id, sheet = "MLB Hitter 7d Data")
+  cat("7d hitters saved to Google Sheet.\n")
+}
 
 # 14d
 response14d <- GET(hitting_14d_url)
-df14d <- as.data.frame(content(response14d, as = "text", encoding = "UTF-8") %>% fromJSON(flatten = TRUE))
-filtered_df14d <- df14d %>%
-  select(
-    Player = PlayerNameRoute,
-    ID = playerid,
-    Team = TeamName,
-    wOBA14d = wOBA,
-    ISO14d = ISO,
-    wrc14d = wRC,
-    k_pct14d = `K%`
-  ) %>%
-  mutate(
-    wOBA14d = formatC(as.numeric(wOBA14d), format = "f", digits = 3),
-    ISO14d = formatC(as.numeric(ISO14d), format = "f", digits = 3),
-    k_pct14d = formatC(as.numeric(k_pct14d), format = "f", digits = 1)
-  )
-colnames(filtered_df14d) <- c("Player", "ID", "Team", "wOBA14d", "ISO14d", "wRC+14d", "K%14d")
-write_sheet(filtered_df14d, ss = sheet_id, sheet = "MLB Hitter 14d Data")
-cat("14d hitters saved to Google Sheet.\n")
+df14d <- process_hitting_data(response14d, "14d")
+
+if (!is.null(df14d)) {
+  filtered_df14d <- df14d %>%
+    select(
+      Player = PlayerNameRoute,
+      ID = playerid,
+      Team = TeamName,
+      wOBA14d = wOBA,
+      ISO14d = ISO,
+      wrc14d = wRC,
+      k_pct14d = `K%`
+    ) %>%
+    mutate(
+      wOBA14d = formatC(as.numeric(wOBA14d), format = "f", digits = 3),
+      ISO14d = formatC(as.numeric(ISO14d), format = "f", digits = 3),
+      k_pct14d = formatC(as.numeric(k_pct14d), format = "f", digits = 1)
+    )
+  colnames(filtered_df14d) <- c("Player", "ID", "Team", "wOBA14d", "ISO14d", "wRC+14d", "K%14d")
+  write_sheet(filtered_df14d, ss = sheet_id, sheet = "MLB Hitter 14d Data")
+  cat("14d hitters saved to Google Sheet.\n")
+}
 
 # 30d
 response30d <- GET(hitting_30d_url)
-df30d <- as.data.frame(content(response30d, as = "text", encoding = "UTF-8") %>% fromJSON(flatten = TRUE))
-filtered_df30d <- df30d %>%
-  select(
-    Player = PlayerNameRoute,
-    ID = playerid,
-    Team = TeamName,
-    wOBA30d = wOBA,
-    ISO30d = ISO,
-    wrc30d = wRC,
-    k_pct30d = `K%`
-  ) %>%
-  mutate(
-    wOBA30d = formatC(as.numeric(wOBA30d), format = "f", digits = 3),
-    ISO30d = formatC(as.numeric(ISO30d), format = "f", digits = 3),
-    k_pct30d = formatC(as.numeric(k_pct30d), format = "f", digits = 1)
-  )
-colnames(filtered_df30d) <- c("Player", "ID", "Team", "wOBA30d", "ISO30d", "wRC+30d", "K%30d")
-write_sheet(filtered_df30d, ss = sheet_id, sheet = "MLB Hitter 30d Data")
-cat("30d hitters saved to Google Sheet.\n")
+df30d <- process_hitting_data(response30d, "30d")
+
+if (!is.null(df30d)) {
+  filtered_df30d <- df30d %>%
+    select(
+      Player = PlayerNameRoute,
+      ID = playerid,
+      Team = TeamName,
+      wOBA30d = wOBA,
+      ISO30d = ISO,
+      wrc30d = wRC,
+      k_pct30d = `K%`
+    ) %>%
+    mutate(
+      wOBA30d = formatC(as.numeric(wOBA30d), format = "f", digits = 3),
+      ISO30d = formatC(as.numeric(ISO30d), format = "f", digits = 3),
+      k_pct30d = formatC(as.numeric(k_pct30d), format = "f", digits = 1)
+    )
+  colnames(filtered_df30d) <- c("Player", "ID", "Team", "wOBA30d", "ISO30d", "wRC+30d", "K%30d")
+  write_sheet(filtered_df30d, ss = sheet_id, sheet = "MLB Hitter 30d Data")
+  cat("30d hitters saved to Google Sheet.\n")
+}
