@@ -240,41 +240,37 @@ if (is.null(df) || nrow(df) == 0) {
 # --- Active Hitters (26-Man Roster from MLB API) ---
 cat("Fetching active 26-man rosters from MLB API...\n")
 mlb_active_roster <- get_active_26man_roster()
-
-# Get teams playing today
 teams_playing_today <- get_teams_playing_today()
 
-if (!is.null(mlb_active_roster) && nrow(mlb_active_roster) > 0 && !is.null(df) && nrow(df) > 0) {
-  # Map MLB roster to FanGraphs IDs using xMLBAMID
-  active_hitters <- df %>%
-    filter(xMLBAMID %in% mlb_active_roster$mlbam_id) %>%
+if (!is.null(mlb_active_roster) && nrow(mlb_active_roster) > 0) {
+  
+  # Join MLB roster directly against Roster Reference sheet
+  active_hitters <- roster_ref %>%
+    filter(MLBAMID %in% mlb_active_roster$mlbam_id) %>%
     select(
-      ID = playerid,
-      Player = PlayerNameRoute,
-      Team = TeamName
+      ID = PlayerId,
+      Player = NameASCII,
+      Team = Team
     )
   
-  # Filter to only teams playing today if we have schedule data
+  # Filter to teams playing today
   if (!is.null(teams_playing_today) && length(teams_playing_today) > 0) {
     active_hitters <- active_hitters %>%
       filter(Team %in% teams_playing_today) %>%
       arrange(Team, Player)
     
-    cat(sprintf("Active hitters for teams playing today saved to Google Sheet (%d players from %d teams).\n", 
+    cat(sprintf("Active hitters for teams playing today: %d players from %d teams.\n",
                 nrow(active_hitters), length(unique(active_hitters$Team))))
   } else {
-    # If no schedule data, return all active hitters
     active_hitters <- active_hitters %>%
       arrange(Team, Player)
-    
-    cat(sprintf("No games today or couldn't fetch schedule - showing all active hitters (%d players).\n", 
-                nrow(active_hitters)))
+    cat(sprintf("No schedule data - showing all active hitters (%d players).\n", nrow(active_hitters)))
   }
   
   write_sheet(active_hitters, ss = sheet_id, sheet = "MLB Active Hitters")
   
 } else {
-  cat("Skipping Active Hitters sheet (no MLB roster data or FanGraphs data unavailable).\n")
+  cat("Skipping Active Hitters sheet (no MLB roster data).\n")
 }
 
 # --- Full Season Hitters ---
