@@ -225,8 +225,8 @@ if (is.null(df) || nrow(df) == 0) {
     # Create a mapping dataframe similar to FanGraphs structure
     df <- data.frame(
       playerid = roster_ref$PlayerId,
-      PlayerNameRoute = roster_ref$NameASCII,  # closest match to a name column
-      TeamName = roster_ref$TeamName,
+      PlayerNameRoute = roster_ref$Name,  # closest match to a name column
+      TeamName = roster_ref$Team,
       xMLBAMID = roster_ref$MLBAMID
     )
     
