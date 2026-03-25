@@ -67,9 +67,6 @@ print(hitting_7d_url)
 print(hitting_14d_url)
 print(hitting_30d_url)
 
-# Active hitters URL
-activehittingurl <- "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos=all&stats=bat&lg=all&qual=2&season=2026&season1=2026&startdate=2026-03-01&enddate=2026-11-01&month=0&hand=&team=0&pageitems=2000000000&pagenum=1&ind=0&rost=1&players=&type=8&postseason=&sortdir=default&sortstat=WAR"
-
 # Hitting URL
 hittingurl <- "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos=all&stats=bat&lg=all&qual=0&season=2026&season1=2026&startdate=2026-03-01&enddate=2026-11-01&month=0&hand=&team=0&pageitems=2000000000&pagenum=1&ind=0&rost=0&players=&type=8&postseason=&sortdir=default&sortstat=WAR"
 
@@ -108,26 +105,81 @@ safe_api_call <- function(url, label) {
   })
 }
 
-# --- Active Hitters ---
-dfactive <- safe_api_call(activehittingurl, "Active Hitters")
+# Helper function to get active 26-man rosters from MLB API
+get_active_26man_roster <- function() {
+  # All 30 MLB team IDs
+  team_ids <- c(108, 109, 110, 111, 112, 113, 114, 115, 116, 117,
+                118, 119, 120, 121, 133, 134, 135, 136, 137, 138,
+                139, 140, 141, 142, 143, 144, 145, 146, 147, 158)
+  
+  # Team abbreviations mapping (MLB team ID to FanGraphs abbreviation)
+  team_abbrev <- c(
+    `108` = "LAA", `109` = "ARI", `110` = "BAL", `111` = "BOS", `112` = "CHC",
+    `113` = "CIN", `114` = "CLE", `115` = "COL", `116` = "DET", `117` = "HOU",
+    `118` = "KCR", `119` = "LAD", `120` = "WSN", `121` = "NYM", `133` = "ATH",
+    `134` = "PIT", `135` = "SDP", `136` = "SEA", `137` = "SFG", `138` = "STL",
+    `139` = "TBR", `140` = "TEX", `141` = "TOR", `142` = "MIN", `143` = "PHI",
+    `144` = "ATL", `145` = "CHW", `146` = "MIA", `147` = "NYY", `158` = "MIL"
+  )
+  
+  all_players <- data.frame()
+  
+  for (team_id in team_ids) {
+    tryCatch({
+      url <- sprintf("https://statsapi.mlb.com/api/v1/teams/%s/roster/Active", team_id)
+      response <- GET(url)
+      data <- fromJSON(content(response, as = "text", encoding = "UTF-8"))
+      
+      if (length(data$roster) > 0) {
+        roster <- data$roster
+        
+        # Filter to position players only (exclude pitchers)
+        # Position code "1" = pitcher
+        position_players <- roster[roster$position$code != "1", ]
+        
+        if (nrow(position_players) > 0) {
+          players <- data.frame(
+            mlbam_id = position_players$person$id,
+            player_name = position_players$person$fullName,
+            team_abbrev = team_abbrev[as.character(team_id)]
+          )
+          
+          all_players <- rbind(all_players, players)
+        }
+      }
+    }, error = function(e) {
+      cat(sprintf("Error fetching roster for team %s: %s\n", team_id, e$message))
+    })
+  }
+  
+  return(all_players)
+}
 
-if (!is.null(dfactive) && nrow(dfactive) > 0) {
-  filtered_dfactive <- dfactive %>%
+# --- Full Season Hitters (get this first for mapping) ---
+df <- safe_api_call(hittingurl, "Full Season Hitters")
+
+# --- Active Hitters (26-Man Roster from MLB API) ---
+cat("Fetching active 26-man rosters from MLB API...\n")
+mlb_active_roster <- get_active_26man_roster()
+
+if (!is.null(mlb_active_roster) && nrow(mlb_active_roster) > 0 && !is.null(df) && nrow(df) > 0) {
+  # Map MLB roster to FanGraphs IDs using xMLBAMID
+  active_hitters <- df %>%
+    filter(xMLBAMID %in% mlb_active_roster$mlbam_id) %>%
     select(
       ID = playerid,
       Player = PlayerNameRoute,
       Team = TeamName
-    )
+    ) %>%
+    arrange(Team, Player)
   
-  write_sheet(filtered_dfactive, ss = sheet_id, sheet = "MLB Active Hitters")
-  cat("Active hitters saved to Google Sheet.\n")
+  write_sheet(active_hitters, ss = sheet_id, sheet = "MLB Active Hitters")
+  cat(sprintf("Active hitters saved to Google Sheet (%d players).\n", nrow(active_hitters)))
 } else {
-  cat("Skipping Active Hitters sheet (no data).\n")
+  cat("Skipping Active Hitters sheet (no MLB roster data or FanGraphs data unavailable).\n")
 }
 
 # --- Full Season Hitters ---
-df <- safe_api_call(hittingurl, "Full Season Hitters")
-
 if (!is.null(df) && nrow(df) > 0) {
   filtered_df <- df %>%
     select(
