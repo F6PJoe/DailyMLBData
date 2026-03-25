@@ -155,12 +155,66 @@ get_active_26man_roster <- function() {
   return(all_players)
 }
 
+# Helper function to get teams playing today
+get_teams_playing_today <- function() {
+  tryCatch({
+    today <- Sys.Date()
+    url <- sprintf("https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=%s", today)
+    
+    response <- GET(url)
+    data <- fromJSON(content(response, as = "text", encoding = "UTF-8"))
+    
+    if (length(data$dates) == 0 || is.null(data$dates$games[[1]])) {
+      cat("No games scheduled today.\n")
+      return(NULL)
+    }
+    
+    games <- data$dates$games[[1]]
+    
+    # Team abbreviations mapping (MLB to FanGraphs)
+    team_abbr_map <- c(
+      "KC" = "KCR", "SD" = "SDP", "MIN" = "MIN", "TB" = "TBR",
+      "CLE" = "CLE", "OAK" = "ATH", "AZ" = "ARI", "HOU" = "HOU",
+      "CHC" = "CHC", "SEA" = "SEA", "COL" = "COL", "DET" = "DET",
+      "WSH" = "WSN", "LAD" = "LAD", "STL" = "STL", "BAL" = "BAL",
+      "PIT" = "PIT", "BOS" = "BOS", "NYY" = "NYY", "TOR" = "TOR",
+      "MIA" = "MIA", "PHI" = "PHI", "CWS" = "CHW", "MIL" = "MIL",
+      "TEX" = "TEX", "SF" = "SFG", "NYM" = "NYM", "ATL" = "ATL",
+      "LAA" = "LAA", "CIN" = "CIN"
+    )
+    
+    # Extract team abbreviations
+    away_teams <- games$teams.away.team.abbreviation
+    home_teams <- games$teams.home.team.abbreviation
+    
+    all_teams <- unique(c(away_teams, home_teams))
+    
+    # Map to FanGraphs abbreviations
+    fg_teams <- sapply(all_teams, function(team) {
+      if (team %in% names(team_abbr_map)) {
+        return(team_abbr_map[team])
+      } else {
+        return(team)
+      }
+    })
+    
+    return(as.character(fg_teams))
+    
+  }, error = function(e) {
+    cat(sprintf("Error fetching today's schedule: %s\n", e$message))
+    return(NULL)
+  })
+}
+
 # --- Full Season Hitters (get this first for mapping) ---
 df <- safe_api_call(hittingurl, "Full Season Hitters")
 
 # --- Active Hitters (26-Man Roster from MLB API) ---
 cat("Fetching active 26-man rosters from MLB API...\n")
 mlb_active_roster <- get_active_26man_roster()
+
+# Get teams playing today
+teams_playing_today <- get_teams_playing_today()
 
 if (!is.null(mlb_active_roster) && nrow(mlb_active_roster) > 0 && !is.null(df) && nrow(df) > 0) {
   # Map MLB roster to FanGraphs IDs using xMLBAMID
@@ -170,11 +224,27 @@ if (!is.null(mlb_active_roster) && nrow(mlb_active_roster) > 0 && !is.null(df) &
       ID = playerid,
       Player = PlayerNameRoute,
       Team = TeamName
-    ) %>%
-    arrange(Team, Player)
+    )
+  
+  # Filter to only teams playing today if we have schedule data
+  if (!is.null(teams_playing_today) && length(teams_playing_today) > 0) {
+    active_hitters <- active_hitters %>%
+      filter(Team %in% teams_playing_today) %>%
+      arrange(Team, Player)
+    
+    cat(sprintf("Active hitters for teams playing today saved to Google Sheet (%d players from %d teams).\n", 
+                nrow(active_hitters), length(unique(active_hitters$Team))))
+  } else {
+    # If no schedule data, return all active hitters
+    active_hitters <- active_hitters %>%
+      arrange(Team, Player)
+    
+    cat(sprintf("No games today or couldn't fetch schedule - showing all active hitters (%d players).\n", 
+                nrow(active_hitters)))
+  }
   
   write_sheet(active_hitters, ss = sheet_id, sheet = "MLB Active Hitters")
-  cat(sprintf("Active hitters saved to Google Sheet (%d players).\n", nrow(active_hitters)))
+  
 } else {
   cat("Skipping Active Hitters sheet (no MLB roster data or FanGraphs data unavailable).\n")
 }
