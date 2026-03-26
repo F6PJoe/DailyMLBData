@@ -72,26 +72,42 @@ hittingurl <- "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos=
 
 sheet_id <- "1AAuiHodCcMzOCpC7oW5xzBXIobcavIvh2AV-sy8OaD4"
 
-# Helper function to safely process API response
 safe_api_call <- function(url, label) {
   tryCatch({
-    response <- GET(url)
-    data_parsed <- content(response, as = "text", encoding = "UTF-8") %>% fromJSON(flatten = TRUE)
     
-    # Handle nested data structure
+    response <- GET(
+      url,
+      add_headers(
+        `User-Agent` = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/146.0.0.0 Safari/537.36",
+        `Accept` = "application/json, text/plain, */*",
+        `Referer` = "https://www.fangraphs.com/leaders/major-league",
+        `Cookie` = paste(
+          "fg_uuid=0a89636b-ebe5-4b77-bf77-7c1c7aac13e1;",
+          "mm-user-id=0GfOXytVy1J57jOV;",
+          "fg_is_member=true"
+        )
+      )
+    )
+    
+    if (status_code(response) != 200) {
+      cat(sprintf("Error fetching %s data: HTTP %s\n", label, status_code(response)))
+      return(NULL)
+    }
+    
+    data_parsed <- content(response, as = "text", encoding = "UTF-8") %>% 
+      fromJSON(flatten = TRUE)
+    
     if (is.null(data_parsed) || length(data_parsed) == 0) {
       cat(sprintf("No %s data available (empty response).\n", label))
       return(NULL)
     }
     
-    # Extract the data array if it's nested
     if ("data" %in% names(data_parsed)) {
       df <- data_parsed$data
     } else {
       df <- data_parsed
     }
     
-    # Check if we actually have data
     if (is.null(df) || length(df) == 0) {
       cat(sprintf("No %s data available (empty data array).\n", label))
       return(NULL)
