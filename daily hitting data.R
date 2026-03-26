@@ -169,20 +169,32 @@ get_active_26man_roster <- function() {
 }
 
 # Helper function to get teams playing today
+# Add some debug output to see what's happening with the schedule
 get_teams_playing_today <- function() {
   tryCatch({
     today <- Sys.Date()
     url <- sprintf("https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=%s", today)
     
+    cat(sprintf("Fetching schedule for %s...\n", today))
+    
     response <- GET(url)
     data <- fromJSON(content(response, as = "text", encoding = "UTF-8"))
     
-    if (length(data$dates) == 0 || is.null(data$dates$games[[1]])) {
+    # Debug: print what we got
+    cat(sprintf("Schedule API returned %d dates\n", length(data$dates)))
+    
+    if (length(data$dates) == 0) {
       cat("No games scheduled today.\n")
       return(NULL)
     }
     
+    if (is.null(data$dates$games[[1]])) {
+      cat("Games data is null.\n")
+      return(NULL)
+    }
+    
     games <- data$dates$games[[1]]
+    cat(sprintf("Found %d games today\n", nrow(games)))
     
     # Team abbreviations mapping (MLB to FanGraphs)
     team_abbr_map <- c(
@@ -210,6 +222,8 @@ get_teams_playing_today <- function() {
         return(team)
       }
     })
+    
+    cat(sprintf("Teams playing: %s\n", paste(fg_teams, collapse=", ")))
     
     return(as.character(fg_teams))
     
