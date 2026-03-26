@@ -72,42 +72,39 @@ hittingurl <- "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos=
 
 sheet_id <- "1AAuiHodCcMzOCpC7oW5xzBXIobcavIvh2AV-sy8OaD4"
 
+# Helper function to safely process API response
 safe_api_call <- function(url, label) {
   tryCatch({
+    response <- GET(url)
     
-    response <- GET(
-      url,
-      add_headers(
-        `User-Agent` = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/146.0.0.0 Safari/537.36",
-        `Accept` = "application/json, text/plain, */*",
-        `Referer` = "https://www.fangraphs.com/leaders/major-league",
-        `Cookie` = paste(
-          "fg_uuid=0a89636b-ebe5-4b77-bf77-7c1c7aac13e1;",
-          "mm-user-id=0GfOXytVy1J57jOV;",
-          "fg_is_member=true"
-        )
-      )
-    )
+    # Check if we got HTML instead of JSON (paywall/login page)
+    content_type <- headers(response)$`content-type`
+    if (!is.null(content_type) && grepl("text/html", content_type)) {
+      cat(sprintf("FanGraphs returned HTML for %s (likely requires login/subscription).\n", label))
+      return(NULL)
+    }
     
     if (status_code(response) != 200) {
       cat(sprintf("Error fetching %s data: HTTP %s\n", label, status_code(response)))
       return(NULL)
     }
     
-    data_parsed <- content(response, as = "text", encoding = "UTF-8") %>% 
-      fromJSON(flatten = TRUE)
+    data_parsed <- content(response, as = "text", encoding = "UTF-8") %>% fromJSON(flatten = TRUE)
     
+    # Handle nested data structure
     if (is.null(data_parsed) || length(data_parsed) == 0) {
       cat(sprintf("No %s data available (empty response).\n", label))
       return(NULL)
     }
     
+    # Extract the data array if it's nested
     if ("data" %in% names(data_parsed)) {
       df <- data_parsed$data
     } else {
       df <- data_parsed
     }
     
+    # Check if we actually have data
     if (is.null(df) || length(df) == 0) {
       cat(sprintf("No %s data available (empty data array).\n", label))
       return(NULL)
@@ -222,6 +219,16 @@ get_teams_playing_today <- function() {
   })
 }
 
+# --- Load Roster Reference sheet (do this FIRST) ---
+cat("Loading Roster Reference sheet...\n")
+roster_ref <- NULL
+tryCatch({
+  roster_ref <- read_sheet(sheet_id, sheet = "Roster Reference")
+  cat(sprintf("Loaded %d players from Roster Reference sheet.\n", nrow(roster_ref)))
+}, error = function(e) {
+  cat(sprintf("Could not load Roster Reference sheet: %s\n", e$message))
+})
+
 # --- Get mapping data (use 2025 if 2026 not available) ---
 df <- safe_api_call(hittingurl, "Full Season Hitters")
 
@@ -232,25 +239,17 @@ if (is.null(df) || nrow(df) == 0) {
   df <- safe_api_call(hittingurl_2025, "2025 Season Hitters (for mapping)")
 }
 
-# If still no data from FanGraphs API, try roster reference sheet
-if (is.null(df) || nrow(df) == 0) {
-  cat("No FanGraphs API data available. Attempting to use Roster Reference sheet...\n")
-  tryCatch({
-    roster_ref <- read_sheet(sheet_id, sheet = "Roster Reference")
-    
-    # Create a mapping dataframe similar to FanGraphs structure
-    df <- data.frame(
-      playerid = roster_ref$PlayerId,
-      PlayerNameRoute = roster_ref$Name,  # closest match to a name column
-      TeamName = roster_ref$Team,
-      xMLBAMID = roster_ref$MLBAMID
-    )
-    
-    cat(sprintf("Loaded %d players from Roster Reference sheet.\n", nrow(df)))
-  }, error = function(e) {
-    cat(sprintf("Could not load Roster Reference sheet: %s\n", e$message))
-    df <- NULL
-  })
+# If still no data from FanGraphs API, use roster reference sheet
+if ((is.null(df) || nrow(df) == 0) && !is.null(roster_ref)) {
+  cat("No FanGraphs API data available. Using Roster Reference sheet for mapping.\n")
+  
+  # Create a mapping dataframe similar to FanGraphs structure
+  df <- data.frame(
+    playerid = roster_ref$PlayerId,
+    PlayerNameRoute = roster_ref$Name,
+    TeamName = roster_ref$Team,
+    xMLBAMID = roster_ref$MLBAMID
+  )
 }
 
 # --- Active Hitters (26-Man Roster from MLB API) ---
@@ -258,16 +257,20 @@ cat("Fetching active 26-man rosters from MLB API...\n")
 mlb_active_roster <- get_active_26man_roster()
 teams_playing_today <- get_teams_playing_today()
 
-if (!is.null(mlb_active_roster) && nrow(mlb_active_roster) > 0) {
+if (!is.null(mlb_active_roster) && nrow(mlb_active_roster) > 0 && !is.null(roster_ref) && nrow(roster_ref) > 0) {
   
-  # Join MLB roster directly against Roster Reference sheet
+  # Join MLB roster against Roster Reference sheet
   active_hitters <- roster_ref %>%
     filter(MLBAMID %in% mlb_active_roster$mlbam_id) %>%
     select(
       ID = PlayerId,
-      Player = NameASCII,
+      Player = Name,  # Use Name column (not NameASCII which is empty)
       Team = Team
     )
+  
+  # Remove rows where Player is NA or empty
+  active_hitters <- active_hitters %>%
+    filter(!is.na(Player) & Player != "")
   
   # Filter to teams playing today
   if (!is.null(teams_playing_today) && length(teams_playing_today) > 0) {
@@ -286,12 +289,11 @@ if (!is.null(mlb_active_roster) && nrow(mlb_active_roster) > 0) {
   write_sheet(active_hitters, ss = sheet_id, sheet = "MLB Active Hitters")
   
 } else {
-  cat("Skipping Active Hitters sheet (no MLB roster data).\n")
+  cat("Skipping Active Hitters sheet (no MLB roster data or Roster Reference unavailable).\n")
 }
 
 # --- Full Season Hitters ---
-# Re-fetch 2026 data if we were using 2025 or roster reference for mapping
-if (!is.null(df) && "xMLBAMID" %in% names(df) && all(c("AVG", "OBP", "OPS") %in% names(df))) {
+if (!is.null(df) && all(c("AVG", "OBP", "OPS") %in% names(df))) {
   # We have full stats from FanGraphs API
   filtered_df <- df %>%
     select(
