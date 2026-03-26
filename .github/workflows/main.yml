@@ -1,36 +1,42 @@
 name: Run Daily MLB Hitter Data R Script
 on:
-  workflow_dispatch:  # Enables manual trigger from GitHub UI
+  workflow_dispatch:
   #schedule:
     # Every day at 5:30 AM ET (9:30 AM UTC)
-    #- cron: '30 9 * * *'  # 9:30 AM UTC (5:30 AM ET)
-    
+    #- cron: '30 9 * * *'
     # Every day at 11:30 AM ET (3:30 PM UTC)
-    #- cron: '30 15 * * *'  # 3:30 PM UTC (11:30 AM ET)
+    #- cron: '30 15 * * *'
     # Every day at 5:30 PM ET (9:30 PM UTC)
-    #- cron: '30 21 * * *'  # 9:30 PM UTC (5:30 PM ET)
+    #- cron: '30 21 * * *'
 jobs:
   run_script:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
+
     - name: Set up R
       uses: r-lib/actions/setup-r@v2
       with:
         use-public-rspm: true
-    - name: Cache R packages
-      uses: actions/cache@v3
-      with:
-        path: ${{ env.R_LIBS_USER }}
-        key: ${{ runner.os }}-r-packages-v1
+
     - name: Install system dependencies
       run: |
-        sudo apt-get update
+        sudo apt-get update -qq
         sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
+
     - name: Install R packages
-      run: |
-        Rscript -e "install.packages(c('googlesheets4', 'dplyr', 'httr', 'base64enc', 'jsonlite'), repos = 'https://cloud.r-project.org')"
+      uses: r-lib/actions/setup-r-dependencies@v2
+      with:
+        packages: |
+          any::googlesheets4
+          any::dplyr
+          any::httr
+          any::base64enc
+          any::jsonlite
+        cache: true
+        cache-version: 1
+
     - name: Run R script
       env:
         GCP_SHEETS_KEY_B64: ${{ secrets.GCP_SHEETS_KEY_B64 }}
