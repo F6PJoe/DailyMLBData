@@ -4,31 +4,26 @@ rm(list = ls())
 
 # Required packages
 packages <- c("httr", "jsonlite", "googlesheets4", "base64enc", "dplyr")
+invisible(lapply(packages, library, character.only = TRUE))
 
-# Install and load missing packages
-for (pkg in packages) {
-  if (!requireNamespace(pkg, quietly = TRUE)) install.packages(pkg)
-  library(pkg, character.only = TRUE)
-}
-
-# Decode Google Sheets credentials from env var and authenticate
+# Authenticate Google Sheets
 json_key <- rawToChar(base64decode(Sys.getenv("GCP_SHEETS_KEY_B64")))
 temp_json_file <- tempfile(fileext = ".json")
 writeLines(json_key, temp_json_file)
 gs4_auth(path = temp_json_file)
 
-# Set today's date and calculate yesterday's date for the URL
-end_date <- Sys.Date()
-url_end_date <- end_date - 1  # Use yesterday's date for the URL
+sheet_id <- "1AAuiHodCcMzOCpC7oW5xzBXIobcavIvh2AV-sy8OaD4"
 
-# Reference dates
-season_start_date <- as.Date("2026-03-25")  # First day of 2026 season
-fallback_start_date <- as.Date("2025-09-28")  # Start point for fallback data
-
-# Calculate days since the season started
+# =============================================================================
+# DATES
+# =============================================================================
+end_date                <- Sys.Date()
+url_end_date            <- end_date - 1
+season_start_date       <- as.Date("2026-03-25")
+fallback_start_date     <- as.Date("2025-09-28")
 days_since_season_start <- as.numeric(end_date - season_start_date)
+thirty_days_in          <- season_start_date + 30  # April 24 — flip to 2026-only
 
-# Function to determine start date based on threshold
 get_start_date <- function(days_threshold) {
   if (days_since_season_start >= days_threshold) {
     return(end_date - (days_threshold - 1))
@@ -38,18 +33,14 @@ get_start_date <- function(days_threshold) {
   }
 }
 
-# Compute start dates
-start_date_7d <- get_start_date(7)
-start_date_14d <- get_start_date(14)
-start_date_30d <- get_start_date(30)
+start_date_7d_str  <- format(get_start_date(7),  "%Y-%m-%d")
+start_date_14d_str <- format(get_start_date(14), "%Y-%m-%d")
+start_date_30d_str <- format(get_start_date(30), "%Y-%m-%d")
+url_end_date_str   <- format(url_end_date, "%Y-%m-%d")
 
-# Format dates for URL
-start_date_7d_str <- format(start_date_7d, "%Y-%m-%d")
-start_date_14d_str <- format(start_date_14d, "%Y-%m-%d")
-start_date_30d_str <- format(start_date_30d, "%Y-%m-%d")
-url_end_date_str <- format(url_end_date, "%Y-%m-%d")  # End date for URL
-
-# Function to construct the appropriate URL
+# =============================================================================
+# URLS
+# =============================================================================
 construct_url <- function(start_date_str, season) {
   sprintf(
     "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos=all&stats=bat&lg=all&qual=1&season=%s&season1=%s&startdate=%s&enddate=%s&month=%s&hand=&team=0&pageitems=2000000000&pagenum=1&ind=0&rost=0&players=&type=8&postseason=&sortdir=default&sortstat=WAR",
@@ -57,322 +48,113 @@ construct_url <- function(start_date_str, season) {
   )
 }
 
-# Generate URLs
-hitting_7d_url <- construct_url(start_date_7d_str, ifelse(days_since_season_start >= 7, "2026", "2025"))
+hitting_7d_url  <- construct_url(start_date_7d_str,  ifelse(days_since_season_start >= 7,  "2026", "2025"))
 hitting_14d_url <- construct_url(start_date_14d_str, ifelse(days_since_season_start >= 14, "2026", "2025"))
 hitting_30d_url <- construct_url(start_date_30d_str, ifelse(days_since_season_start >= 30, "2026", "2025"))
 
-# Print URLs for verification
+# Full season URL — slides forward day by day until 30 days in, then flips to 2026-only
+if (end_date >= thirty_days_in) {
+  hittingurl <- sprintf(
+    "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos=all&stats=bat&lg=all&qual=0&season=2026&season1=2026&startdate=2026-03-25&enddate=%s&month=1000&hand=&team=0&pageitems=2000000000&pagenum=1&ind=0&rost=0&players=&type=8&postseason=&sortdir=default&sortstat=WAR",
+    format(end_date, "%Y-%m-%d")
+  )
+  cat("30+ days into 2026 season, using 2026 data only.\n")
+} else {
+  full_season_start_date <- as.Date("2025-08-28") + days_since_season_start
+  hittingurl <- sprintf(
+    "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos=all&stats=bat&lg=all&qual=0&season=2025&season1=2025&startdate=%s&enddate=%s&month=1000&hand=&team=0&pageitems=2000000000&pagenum=1&ind=0&rost=0&players=&type=8&postseason=&sortdir=default&sortstat=WAR",
+    format(full_season_start_date, "%Y-%m-%d"),
+    format(end_date, "%Y-%m-%d")
+  )
+  cat(sprintf("Early season (day %d of 30), blending from %s through today.\n",
+              days_since_season_start, format(full_season_start_date, "%Y-%m-%d")))
+}
+
 print(hitting_7d_url)
 print(hitting_14d_url)
 print(hitting_30d_url)
+print(hittingurl)
 
-# Hitting URL
-hittingurl <- "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos=all&stats=bat&lg=all&qual=0&season=2026&season1=2026&startdate=2026-03-01&enddate=2026-11-01&month=0&hand=&team=0&pageitems=2000000000&pagenum=1&ind=0&rost=0&players=&type=8&postseason=&sortdir=default&sortstat=WAR"
-
-sheet_id <- "1AAuiHodCcMzOCpC7oW5xzBXIobcavIvh2AV-sy8OaD4"
-
-# Helper function to safely process API response
+# =============================================================================
+# SAFE API CALL HELPER
+# =============================================================================
 safe_api_call <- function(url, label) {
   tryCatch({
-    response <- GET(url)
-    
-    # Check if we got HTML instead of JSON (paywall/login page)
-    content_type <- headers(response)$`content-type`
-    if (!is.null(content_type) && grepl("text/html", content_type)) {
-      cat(sprintf("FanGraphs returned HTML for %s (likely requires login/subscription).\n", label))
-      return(NULL)
-    }
-    
-    if (status_code(response) != 200) {
-      cat(sprintf("Error fetching %s data: HTTP %s\n", label, status_code(response)))
-      return(NULL)
-    }
-    
+    response    <- GET(url)
     data_parsed <- content(response, as = "text", encoding = "UTF-8") %>% fromJSON(flatten = TRUE)
-    
-    # Handle nested data structure
+
     if (is.null(data_parsed) || length(data_parsed) == 0) {
       cat(sprintf("No %s data available (empty response).\n", label))
       return(NULL)
     }
-    
-    # Extract the data array if it's nested
-    if ("data" %in% names(data_parsed)) {
-      df <- data_parsed$data
-    } else {
-      df <- data_parsed
-    }
-    
-    # Check if we actually have data
+
+    df <- if ("data" %in% names(data_parsed)) data_parsed$data else data_parsed
+
     if (is.null(df) || length(df) == 0) {
       cat(sprintf("No %s data available (empty data array).\n", label))
       return(NULL)
     }
-    
+
     return(as.data.frame(df))
-    
+
   }, error = function(e) {
     cat(sprintf("Error fetching %s data: %s\n", label, e$message))
     return(NULL)
   })
 }
 
-# Helper function to get active 26-man rosters from MLB API
-get_active_26man_roster <- function() {
-  # All 30 MLB team IDs
-  team_ids <- c(108, 109, 110, 111, 112, 113, 114, 115, 116, 117,
-                118, 119, 120, 121, 133, 134, 135, 136, 137, 138,
-                139, 140, 141, 142, 143, 144, 145, 146, 147, 158)
-  
-  # Team abbreviations mapping (MLB team ID to FanGraphs abbreviation)
-  team_abbrev <- c(
-    `108` = "LAA", `109` = "ARI", `110` = "BAL", `111` = "BOS", `112` = "CHC",
-    `113` = "CIN", `114` = "CLE", `115` = "COL", `116` = "DET", `117` = "HOU",
-    `118` = "KCR", `119` = "LAD", `120` = "WSN", `121` = "NYM", `133` = "ATH",
-    `134` = "PIT", `135` = "SDP", `136` = "SEA", `137` = "SFG", `138` = "STL",
-    `139` = "TBR", `140` = "TEX", `141` = "TOR", `142` = "MIN", `143` = "PHI",
-    `144` = "ATL", `145` = "CHW", `146` = "MIA", `147` = "NYY", `158` = "MIL"
-  )
-  
-  all_players <- data.frame()
-  
-  for (team_id in team_ids) {
-    tryCatch({
-      url <- sprintf("https://statsapi.mlb.com/api/v1/teams/%s/roster/Active", team_id)
-      response <- GET(url)
-      data <- fromJSON(content(response, as = "text", encoding = "UTF-8"))
-      
-      if (length(data$roster) > 0) {
-        roster <- data$roster
-        
-        # Filter to position players only (exclude pitchers)
-        # Position code "1" = pitcher
-        position_players <- roster[roster$position$code != "1", ]
-        
-        if (nrow(position_players) > 0) {
-          players <- data.frame(
-            mlbam_id = position_players$person$id,
-            player_name = position_players$person$fullName,
-            team_abbrev = team_abbrev[as.character(team_id)]
-          )
-          
-          all_players <- rbind(all_players, players)
-        }
-      }
-    }, error = function(e) {
-      cat(sprintf("Error fetching roster for team %s: %s\n", team_id, e$message))
-    })
-  }
-  
-  return(all_players)
-}
-
-# Helper function to get teams playing today
-# Add some debug output to see what's happening with the schedule
-get_teams_playing_today <- function() {
-  tryCatch({
-    today <- Sys.Date()
-    url <- sprintf("https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=%s", today)
-    
-    cat(sprintf("Fetching schedule for %s...\n", today))
-    
-    response <- GET(url)
-    data <- fromJSON(content(response, as = "text", encoding = "UTF-8"))
-    
-    # Debug: print what we got
-    cat(sprintf("Schedule API returned %d dates\n", length(data$dates)))
-    
-    if (length(data$dates) == 0) {
-      cat("No games scheduled today.\n")
-      return(NULL)
-    }
-    
-    if (is.null(data$dates$games[[1]])) {
-      cat("Games data is null.\n")
-      return(NULL)
-    }
-    
-    games <- data$dates$games[[1]]
-    cat(sprintf("Found %d games today\n", nrow(games)))
-    
-    # Team abbreviations mapping (MLB to FanGraphs)
-    team_abbr_map <- c(
-      "KC" = "KCR", "SD" = "SDP", "MIN" = "MIN", "TB" = "TBR",
-      "CLE" = "CLE", "OAK" = "ATH", "AZ" = "ARI", "HOU" = "HOU",
-      "CHC" = "CHC", "SEA" = "SEA", "COL" = "COL", "DET" = "DET",
-      "WSH" = "WSN", "LAD" = "LAD", "STL" = "STL", "BAL" = "BAL",
-      "PIT" = "PIT", "BOS" = "BOS", "NYY" = "NYY", "TOR" = "TOR",
-      "MIA" = "MIA", "PHI" = "PHI", "CWS" = "CHW", "MIL" = "MIL",
-      "TEX" = "TEX", "SF" = "SFG", "NYM" = "NYM", "ATL" = "ATL",
-      "LAA" = "LAA", "CIN" = "CIN"
-    )
-    
-    # Extract team abbreviations
-    away_teams <- games$teams.away.team.abbreviation
-    home_teams <- games$teams.home.team.abbreviation
-    
-    all_teams <- unique(c(away_teams, home_teams))
-    
-    # Map to FanGraphs abbreviations
-    fg_teams <- sapply(all_teams, function(team) {
-      if (team %in% names(team_abbr_map)) {
-        return(team_abbr_map[team])
-      } else {
-        return(team)
-      }
-    })
-    
-    cat(sprintf("Teams playing: %s\n", paste(fg_teams, collapse=", ")))
-    
-    return(as.character(fg_teams))
-    
-  }, error = function(e) {
-    cat(sprintf("Error fetching today's schedule: %s\n", e$message))
-    return(NULL)
-  })
-}
-
-# --- Load Roster Reference sheet (do this FIRST) ---
-cat("Loading Roster Reference sheet...\n")
-roster_ref <- NULL
-tryCatch({
-  roster_ref <- read_sheet(sheet_id, sheet = "Roster Reference")
-  cat(sprintf("Loaded %d players from Roster Reference sheet.\n", nrow(roster_ref)))
-}, error = function(e) {
-  cat(sprintf("Could not load Roster Reference sheet: %s\n", e$message))
-})
-
-# --- Get mapping data (use 2025 if 2026 not available) ---
+# =============================================================================
+# FULL SEASON HITTERS
+# =============================================================================
 df <- safe_api_call(hittingurl, "Full Season Hitters")
 
-# If no 2026 data, try 2025 for mapping purposes
-if (is.null(df) || nrow(df) == 0) {
-  cat("No 2026 data available. Fetching 2025 data for player ID mapping...\n")
-  hittingurl_2025 <- "https://www.fangraphs.com/api/leaders/major-league/data?age=&pos=all&stats=bat&lg=all&qual=0&season=2025&season1=2025&startdate=2025-03-01&enddate=2025-11-01&month=0&hand=&team=0&pageitems=2000000000&pagenum=1&ind=0&rost=0&players=&type=8&postseason=&sortdir=default&sortstat=WAR"
-  df <- safe_api_call(hittingurl_2025, "2025 Season Hitters (for mapping)")
-}
-
-# If still no data from FanGraphs API, use roster reference sheet
-if ((is.null(df) || nrow(df) == 0) && !is.null(roster_ref)) {
-  cat("No FanGraphs API data available. Using Roster Reference sheet for mapping.\n")
-  
-  # Create a mapping dataframe similar to FanGraphs structure
-  df <- data.frame(
-    playerid = roster_ref$PlayerId,
-    PlayerNameRoute = roster_ref$Name,
-    TeamName = roster_ref$Team,
-    xMLBAMID = roster_ref$MLBAMID
-  )
-}
-
-# --- Active Hitters (26-Man Roster from MLB API) ---
-cat("Fetching active 26-man rosters from MLB API...\n")
-mlb_active_roster <- get_active_26man_roster()
-teams_playing_today <- get_teams_playing_today()
-
-if (!is.null(mlb_active_roster) && nrow(mlb_active_roster) > 0 && !is.null(roster_ref) && nrow(roster_ref) > 0) {
-  
-  # Join MLB roster against Roster Reference sheet
-  active_hitters <- roster_ref %>%
-    filter(MLBAMID %in% mlb_active_roster$mlbam_id) %>%
-    select(
-      ID = PlayerId,
-      Player = Name,  # Use Name column (not NameASCII which is empty)
-      Team = Team
-    )
-  
-  # Remove rows where Player is NA or empty
-  active_hitters <- active_hitters %>%
-    filter(!is.na(Player) & Player != "")
-  
-  # Filter to teams playing today
-  if (!is.null(teams_playing_today) && length(teams_playing_today) > 0) {
-    active_hitters <- active_hitters %>%
-      filter(Team %in% teams_playing_today) %>%
-      arrange(Team, Player)
-    
-    cat(sprintf("Active hitters for teams playing today: %d players from %d teams.\n",
-                nrow(active_hitters), length(unique(active_hitters$Team))))
-  } else {
-    active_hitters <- active_hitters %>%
-      arrange(Team, Player)
-    cat(sprintf("No schedule data - showing all active hitters (%d players).\n", nrow(active_hitters)))
-  }
-  
-  write_sheet(active_hitters, ss = sheet_id, sheet = "MLB Active Hitters")
-  
-} else {
-  cat("Skipping Active Hitters sheet (no MLB roster data or Roster Reference unavailable).\n")
-}
-
-# --- Full Season Hitters ---
-if (!is.null(df) && all(c("AVG", "OBP", "OPS") %in% names(df))) {
-  # We have full stats from FanGraphs API
+if (!is.null(df) && nrow(df) > 0) {
   filtered_df <- df %>%
     select(
-      Player = PlayerNameRoute,
-      ID = playerid,
-      Team = TeamName,
-      AVG = AVG,
-      OBP = OBP,
-      OPS = OPS,
-      SLG = SLG,
-      BABIP = BABIP,
-      PA,
-      R, HR,
-      RBI, SB,
-      Barrel_pct = Barrel,
-      HardHit_pct = HardHit,
-      xBA = xAVG,
-      xSLG = xSLG,
-      xwOBA = xwOBA
+      Player      = PlayerNameRoute,
+      ID          = playerid,
+      Team        = TeamName,
+      AVG, OBP, OPS, SLG, BABIP, PA, R, HR, RBI, SB,
+      Barrel_pct  = `Barrel%`,
+      HardHit_pct = `HardHit%`,
+      xBA         = xAVG,
+      xSLG,
+      xwOBA
     ) %>%
     mutate(
-      AVG = as.numeric(AVG),
-      OBP = as.numeric(OBP),
-      OPS = as.numeric(OPS),
-      SLG = as.numeric(SLG),
-      BABIP = as.numeric(BABIP),
-      PA = as.numeric(PA),
-      R = as.numeric(R),
-      HR = as.numeric(HR),
-      RBI = as.numeric(RBI),
-      SB = as.numeric(SB),
-      Barrel_pct = as.numeric(Barrel_pct) * 100,
-      HardHit_pct = as.numeric(HardHit_pct) * 100,
-      xBA = as.numeric(xBA),
-      xSLG = as.numeric(xSLG),
-      xwOBA = as.numeric(xwOBA)
+      AVG         = formatC(as.numeric(AVG),         format = "f", digits = 3),
+      OBP         = formatC(as.numeric(OBP),         format = "f", digits = 3),
+      OPS         = formatC(as.numeric(OPS),         format = "f", digits = 3),
+      SLG         = formatC(as.numeric(SLG),         format = "f", digits = 3),
+      BABIP       = formatC(as.numeric(BABIP),       format = "f", digits = 3),
+      xBA         = formatC(as.numeric(xBA),         format = "f", digits = 3),
+      xSLG        = formatC(as.numeric(xSLG),        format = "f", digits = 3),
+      xwOBA       = formatC(as.numeric(xwOBA),       format = "f", digits = 3),
+      Barrel_pct  = formatC(as.numeric(Barrel_pct)  * 100, format = "f", digits = 1),
+      HardHit_pct = formatC(as.numeric(HardHit_pct) * 100, format = "f", digits = 1)
     ) %>%
+    mutate(across(c(AVG, OBP, OPS, SLG, BABIP, xBA, xSLG, xwOBA, Barrel_pct, HardHit_pct), as.numeric)) %>%
     mutate(across(everything(), ~ ifelse(is.na(.), "", .)))
-  
+
   write_sheet(filtered_df, ss = sheet_id, sheet = "MLB Hitter Data")
   cat("Full season hitters saved to Google Sheet.\n")
 } else {
-  cat("Skipping Full Season Hitters sheet (no stats data available yet).\n")
+  cat("Skipping Full Season Hitters sheet (no data).\n")
 }
 
-# --- 7d, 14d, 30d hitters ---
-
-# 7d
+# =============================================================================
+# 7d HITTERS
+# =============================================================================
 df7d <- safe_api_call(hitting_7d_url, "7d Hitters")
 
 if (!is.null(df7d) && nrow(df7d) > 0) {
   filtered_df7d <- df7d %>%
-    select(
-      Player = PlayerNameRoute,
-      ID = playerid,
-      Team = TeamName,
-      wOBA7d = wOBA,
-      ISO7d = ISO,
-      wrc7d = wRC,
-      k_pct7d = `K%`
-    ) %>%
+    select(Player = PlayerNameRoute, ID = playerid, Team = TeamName,
+           wOBA7d = wOBA, ISO7d = ISO, wrc7d = wRC, k_pct7d = `K%`) %>%
     mutate(
-      wOBA7d = as.numeric(wOBA7d),
-      ISO7d = as.numeric(ISO7d),
-      wrc7d = as.numeric(wrc7d),
+      wOBA7d  = as.numeric(wOBA7d),
+      ISO7d   = as.numeric(ISO7d),
+      wrc7d   = as.numeric(wrc7d),
       k_pct7d = as.numeric(k_pct7d) * 100
     )
   colnames(filtered_df7d) <- c("Player", "ID", "Team", "wOBA7d", "ISO7d", "wRC+7d", "K%7d")
@@ -382,24 +164,19 @@ if (!is.null(df7d) && nrow(df7d) > 0) {
   cat("Skipping 7d Hitters sheet (no data).\n")
 }
 
-# 14d
+# =============================================================================
+# 14d HITTERS
+# =============================================================================
 df14d <- safe_api_call(hitting_14d_url, "14d Hitters")
 
 if (!is.null(df14d) && nrow(df14d) > 0) {
   filtered_df14d <- df14d %>%
-    select(
-      Player = PlayerNameRoute,
-      ID = playerid,
-      Team = TeamName,
-      wOBA14d = wOBA,
-      ISO14d = ISO,
-      wrc14d = wRC,
-      k_pct14d = `K%`
-    ) %>%
+    select(Player = PlayerNameRoute, ID = playerid, Team = TeamName,
+           wOBA14d = wOBA, ISO14d = ISO, wrc14d = wRC, k_pct14d = `K%`) %>%
     mutate(
-      wOBA14d = as.numeric(wOBA14d),
-      ISO14d = as.numeric(ISO14d),
-      wrc14d = as.numeric(wrc14d),
+      wOBA14d  = as.numeric(wOBA14d),
+      ISO14d   = as.numeric(ISO14d),
+      wrc14d   = as.numeric(wrc14d),
       k_pct14d = as.numeric(k_pct14d) * 100
     )
   colnames(filtered_df14d) <- c("Player", "ID", "Team", "wOBA14d", "ISO14d", "wRC+14d", "K%14d")
@@ -409,24 +186,19 @@ if (!is.null(df14d) && nrow(df14d) > 0) {
   cat("Skipping 14d Hitters sheet (no data).\n")
 }
 
-# 30d
+# =============================================================================
+# 30d HITTERS
+# =============================================================================
 df30d <- safe_api_call(hitting_30d_url, "30d Hitters")
 
 if (!is.null(df30d) && nrow(df30d) > 0) {
   filtered_df30d <- df30d %>%
-    select(
-      Player = PlayerNameRoute,
-      ID = playerid,
-      Team = TeamName,
-      wOBA30d = wOBA,
-      ISO30d = ISO,
-      wrc30d = wRC,
-      k_pct30d = `K%`
-    ) %>%
+    select(Player = PlayerNameRoute, ID = playerid, Team = TeamName,
+           wOBA30d = wOBA, ISO30d = ISO, wrc30d = wRC, k_pct30d = `K%`) %>%
     mutate(
-      wOBA30d = as.numeric(wOBA30d),
-      ISO30d = as.numeric(ISO30d),
-      wrc30d = as.numeric(wrc30d),
+      wOBA30d  = as.numeric(wOBA30d),
+      ISO30d   = as.numeric(ISO30d),
+      wrc30d   = as.numeric(wrc30d),
       k_pct30d = as.numeric(k_pct30d) * 100
     )
   colnames(filtered_df30d) <- c("Player", "ID", "Team", "wOBA30d", "ISO30d", "wRC+30d", "K%30d")
@@ -435,5 +207,92 @@ if (!is.null(df30d) && nrow(df30d) > 0) {
 } else {
   cat("Skipping 30d Hitters sheet (no data).\n")
 }
+
+# =============================================================================
+# ACTIVE HITTERS - MLB API + Roster Reference cross-reference
+# Runs last so failures here cannot block any section above
+# =============================================================================
+tryCatch({
+
+  # Team ID to FanGraphs abbreviation mapping
+  team_id_to_fg <- c(
+    `108` = "LAA", `109` = "ARI", `110` = "BAL", `111` = "BOS", `112` = "CHC",
+    `113` = "CIN", `114` = "CLE", `115` = "COL", `116` = "DET", `117` = "HOU",
+    `118` = "KCR", `119` = "LAD", `120` = "WSN", `121` = "NYM", `133` = "ATH",
+    `134` = "PIT", `135` = "SDP", `136` = "SEA", `137` = "SFG", `138` = "STL",
+    `139` = "TBR", `140` = "TEX", `141` = "TOR", `142` = "MIN", `143` = "PHI",
+    `144` = "ATL", `145` = "CHW", `146` = "MIA", `147` = "NYY", `158` = "MIL"
+  )
+
+  # Load Roster Reference
+  cat("Loading Roster Reference sheet...\n")
+  roster_ref <- read_sheet(sheet_id, sheet = "Roster Reference")
+  cat(sprintf("Loaded %d players from Roster Reference.\n", nrow(roster_ref)))
+
+  # Get today's schedule and map team IDs to FanGraphs abbreviations
+  cat("Fetching today's schedule...\n")
+  schedule_resp <- fromJSON(content(
+    GET(sprintf("https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=%s", Sys.Date())),
+    as = "text", encoding = "UTF-8"
+  ))
+
+  teams_today <- NULL
+  if (length(schedule_resp$dates) > 0 && !is.null(schedule_resp$dates$games[[1]])) {
+    games       <- schedule_resp$dates$games[[1]]
+    all_ids     <- unique(c(games$teams$away$team$id, games$teams$home$team$id))
+    teams_today <- as.character(team_id_to_fg[as.character(all_ids)])
+    teams_today <- teams_today[!is.na(teams_today)]
+    cat(sprintf("Teams playing today (%d): %s\n", length(teams_today), paste(teams_today, collapse = ", ")))
+  } else {
+    cat("No games found for today.\n")
+  }
+
+  # Get active 26-man rosters from MLB API (position players only)
+  cat("Fetching active rosters...\n")
+  team_ids <- c(108, 109, 110, 111, 112, 113, 114, 115, 116, 117,
+                118, 119, 120, 121, 133, 134, 135, 136, 137, 138,
+                139, 140, 141, 142, 143, 144, 145, 146, 147, 158)
+
+  mlb_active_ids <- c()
+  for (team_id in team_ids) {
+    tryCatch({
+      roster_resp <- fromJSON(content(
+        GET(sprintf("https://statsapi.mlb.com/api/v1/teams/%s/roster/Active", team_id)),
+        as = "text", encoding = "UTF-8"
+      ))
+      if (length(roster_resp$roster) > 0) {
+        pos_players    <- roster_resp$roster[roster_resp$roster$position$code != "1", ]
+        mlb_active_ids <- c(mlb_active_ids, pos_players$person$id)
+      }
+    }, error = function(e) {
+      cat(sprintf("Error fetching roster for team %s: %s\n", team_id, e$message))
+    })
+  }
+  cat(sprintf("Found %d active position players across all rosters.\n", length(mlb_active_ids)))
+
+  # Cross-reference with Roster Reference to get FanGraphs IDs
+  # Then filter to only teams playing today
+  active_hitters <- roster_ref %>%
+    filter(MLBAMID %in% mlb_active_ids) %>%
+    select(ID = PlayerId, Player = Name, Team = Team) %>%
+    filter(!is.na(Player) & Player != "") %>%
+    mutate(ID = as.numeric(unlist(ID)))
+
+  if (!is.null(teams_today) && length(teams_today) > 0) {
+    active_hitters <- active_hitters %>%
+      filter(Team %in% teams_today)
+  }
+
+  active_hitters <- active_hitters %>% arrange(Team, Player)
+  cat(sprintf("Writing %d active hitters (%d teams) to sheet.\n",
+              nrow(active_hitters), length(unique(active_hitters$Team))))
+
+  write_sheet(active_hitters, ss = sheet_id, sheet = "MLB Active Hitters")
+  cat("Active hitters saved to Google Sheet.\n")
+
+}, error = function(e) {
+  cat(sprintf("Error in Active Hitters section: %s\n", e$message))
+  cat("Skipping Active Hitters sheet.\n")
+})
 
 cat("\nScript completed successfully!\n")
