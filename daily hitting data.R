@@ -276,7 +276,7 @@ tryCatch({
     filter(MLBAMID %in% mlb_active_ids) %>%
     select(ID = PlayerId, Player = Name, Team = Team) %>%
     filter(!is.na(Player) & Player != "") %>%
-    mutate(ID = as.numeric(unlist(ID)))
+    mutate(ID = as.character(unlist(ID)))
 
   if (!is.null(teams_today) && length(teams_today) > 0) {
     active_hitters <- active_hitters %>%
