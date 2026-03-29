@@ -1,6 +1,11 @@
 # MLB Fantasy Games Played Tracker - GitHub Actions Version
 # Fetches player games played by position from FanGraphs and writes to Google Sheets
 
+# Ensure packages installed by CI are findable
+if (Sys.getenv("GITHUB_ACTIONS") == "true") {
+  .libPaths(c("/home/runner/R/library", .libPaths()))
+}
+
 library(httr)
 library(jsonlite)
 library(dplyr)
@@ -15,7 +20,7 @@ writeLines(json_key, temp_json_file)
 gs4_auth(path = temp_json_file)
 
 # ── Config ────────────────────────────────────────────────────────────────────
-SHEET_ID   <- Sys.getenv("MLBGamesPlayedGOOGLE_SHEET_ID")   # set as repo secret
+SHEET_ID   <- Sys.getenv("MLBGamesPlayedGOOGLE_SHEET_ID")
 SEASON     <- "2026"
 START_DATE <- paste0(SEASON, "-03-01")
 END_DATE   <- paste0(SEASON, "-11-01")
