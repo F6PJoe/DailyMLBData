@@ -1,5 +1,4 @@
-name: Fetch MLB Fantasy Data
-
+name: MLB Games Played Tracker
 on:
   schedule:
     # Runs daily at 9:00 AM UTC (3:00 AM MT) — adjust as needed
