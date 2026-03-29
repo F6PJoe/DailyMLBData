@@ -1,4 +1,5 @@
 name: MLB Games Played Tracker
+
 on:
   schedule:
     # Runs daily at 9:00 AM UTC (3:00 AM MT) — adjust as needed
@@ -12,7 +13,7 @@ jobs:
 
     env:
       GCP_SHEETS_KEY_B64: ${{ secrets.GCP_SHEETS_KEY_B64 }}
-      GOOGLE_SHEET_ID: ${{ secrets.MLBGamesPlayedGOOGLE_SHEET_ID }}
+      GOOGLE_SHEET_ID: ${{ secrets.MLBGAMESPLAYEDGOOGLE_SHEET_ID }}
 
     steps:
       - name: Checkout repository
@@ -34,11 +35,9 @@ jobs:
 
       - name: Install R dependencies
         run: |
-          Rscript -e "
-            pkgs <- c('httr', 'jsonlite', 'dplyr', 'googlesheets4', 'base64enc')
-            missing <- pkgs[!pkgs %in% installed.packages()[,'Package']]
-            if (length(missing)) install.packages(missing, repos = 'https://cloud.r-project.org')
-          "
+          install.packages(c('httr', 'jsonlite', 'dplyr', 'googlesheets4', 'base64enc'),
+            repos = 'https://cloud.r-project.org')
+        shell: Rscript {0}
 
       - name: Run MLB data fetch
         run: Rscript MLBGamesPlayedTracker.R
