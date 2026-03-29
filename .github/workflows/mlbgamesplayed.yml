@@ -1,19 +1,14 @@
 name: MLB Games Played Tracker
 
 on:
-  schedule:
-    - cron: "0 9 * * *"
+  #schedule:
+    #- cron: "0 9 * * *"
   workflow_dispatch:
 
 jobs:
   fetch-mlb-data:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
-    env:
-      GCP_SHEETS_KEY_B64: ${{ secrets.GCP_SHEETS_KEY_B64 }}
-      MLBGamesPlayedGOOGLE_SHEET_ID: ${{ secrets.MLBGAMESPLAYEDGOOGLE_SHEET_ID }}
-      R_LIBS_USER: /home/runner/R/library
 
     steps:
       - name: Checkout repository
@@ -22,27 +17,27 @@ jobs:
       - name: Set up R
         uses: r-lib/actions/setup-r@v2
         with:
-          r-version: "4.4"
           use-public-rspm: true
 
-      - name: Cache R packages
-        uses: actions/cache@v4
-        with:
-          path: /home/runner/R/library
-          key: ${{ runner.os }}-r-4.4-mlb-v1
-          restore-keys: |
-            ${{ runner.os }}-r-4.4-mlb-
-
-      - name: Install R dependencies
+      - name: Install system dependencies
         run: |
-          dir.create("/home/runner/R/library", recursive = TRUE, showWarnings = FALSE)
-          .libPaths("/home/runner/R/library")
-          install.packages(
-            c('httr', 'jsonlite', 'dplyr', 'googlesheets4', 'base64enc'),
-            lib = "/home/runner/R/library",
-            repos = 'https://cloud.r-project.org'
-          )
-        shell: Rscript {0}
+          sudo apt-get update -qq
+          sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
 
-      - name: Run MLB data fetch
-        run: Rscript -e '.libPaths("/home/runner/R/library")' -e 'source("MLBGamesPlayedTracker.R")'
+      - name: Install R packages
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            any::httr
+            any::jsonlite
+            any::dplyr
+            any::googlesheets4
+            any::base64enc
+          cache: true
+          cache-version: 1
+
+      - name: Run MLB Games Played Tracker
+        env:
+          GCP_SHEETS_KEY_B64: ${{ secrets.GCP_SHEETS_KEY_B64 }}
+          MLBGamesPlayedGOOGLE_SHEET_ID: ${{ secrets.MLBGAMESPLAYEDGOOGLE_SHEET_ID }}
+        run: Rscript MLBGamesPlayedTracker.R
