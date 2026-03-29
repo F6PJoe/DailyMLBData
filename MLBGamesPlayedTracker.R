@@ -15,7 +15,7 @@ writeLines(json_key, temp_json_file)
 gs4_auth(path = temp_json_file)
 
 # ── Config ────────────────────────────────────────────────────────────────────
-SHEET_ID   <- Sys.getenv("17ULjP624ARXjCouBZUasFzPqbOB9XlPeJ5x-B94Nc_o")   # set as repo secret
+SHEET_ID   <- Sys.getenv("MLBGamesPlayedGOOGLE_SHEET_ID")   # set as repo secret
 SEASON     <- "2026"
 START_DATE <- paste0(SEASON, "-03-01")
 END_DATE   <- paste0(SEASON, "-11-01")
