@@ -2,9 +2,8 @@ name: MLB Games Played Tracker
 
 on:
   schedule:
-    # Runs daily at 9:00 AM UTC (3:00 AM MT) — adjust as needed
     - cron: "0 9 * * *"
-  workflow_dispatch: # allows manual trigger from GitHub UI
+  workflow_dispatch:
 
 jobs:
   fetch-mlb-data:
@@ -13,7 +12,8 @@ jobs:
 
     env:
       GCP_SHEETS_KEY_B64: ${{ secrets.GCP_SHEETS_KEY_B64 }}
-      GOOGLE_SHEET_ID: ${{ secrets.MLBGAMESPLAYEDGOOGLE_SHEET_ID }}
+      MLBGamesPlayedGOOGLE_SHEET_ID: ${{ secrets.MLBGAMESPLAYEDGOOGLE_SHEET_ID }}
+      R_LIBS_USER: /home/runner/R/library
 
     steps:
       - name: Checkout repository
@@ -23,21 +23,26 @@ jobs:
         uses: r-lib/actions/setup-r@v2
         with:
           r-version: "4.4"
-          use-public-rspm: true   # faster binary package installs
+          use-public-rspm: true
 
       - name: Cache R packages
         uses: actions/cache@v4
         with:
-          path: ${{ env.R_LIBS_USER }}
-          key: ${{ runner.os }}-r-4.4-${{ hashFiles('**/fetch_mlb_data.R') }}
+          path: /home/runner/R/library
+          key: ${{ runner.os }}-r-4.4-mlb-v1
           restore-keys: |
-            ${{ runner.os }}-r-4.4-
+            ${{ runner.os }}-r-4.4-mlb-
 
       - name: Install R dependencies
         run: |
-          install.packages(c('httr', 'jsonlite', 'dplyr', 'googlesheets4', 'base64enc'),
-            repos = 'https://cloud.r-project.org')
+          dir.create("/home/runner/R/library", recursive = TRUE, showWarnings = FALSE)
+          .libPaths("/home/runner/R/library")
+          install.packages(
+            c('httr', 'jsonlite', 'dplyr', 'googlesheets4', 'base64enc'),
+            lib = "/home/runner/R/library",
+            repos = 'https://cloud.r-project.org'
+          )
         shell: Rscript {0}
 
       - name: Run MLB data fetch
-        run: Rscript MLBGamesPlayedTracker.R
+        run: Rscript -e '.libPaths("/home/runner/R/library")' -e 'source("MLBGamesPlayedTracker.R")'
