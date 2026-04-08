@@ -95,6 +95,7 @@ safe_api_call <- function(url, label) {
     
     df <- bind_rows(lapply(records, function(x) {
       x[sapply(x, is.null)] <- NA
+      x <- lapply(x, function(v) if (length(v) == 1) as.character(v) else NA_character_)
       as.data.frame(x, stringsAsFactors = FALSE)
     }))
     
