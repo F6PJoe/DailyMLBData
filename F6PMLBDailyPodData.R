@@ -132,10 +132,6 @@ write_hitting <- function(url, sheet_name, label) {
   }
   
   wrc_col <- intersect(c("wRC+", "wRC.", "wRC"), names(df))[1]
-  if (is.na(wrc_col)) {
-    cat(sprintf("WARNING: No wRC+ column found for %s\n", sheet_name))
-    return(invisible(NULL))
-  }
   
   filtered <- df %>%
     select(
@@ -167,10 +163,6 @@ write_pitching <- function(url, sheet_name, label) {
   }
   
   kbb_col <- intersect(c("K-BB%", "K.BB.", "K/BB%", "KBB%"), names(df))[1]
-  if (is.na(kbb_col)) {
-    cat(sprintf("WARNING: No K/BB%% column found for %s\n", sheet_name))
-    return(invisible(NULL))
-  }
   
   filtered <- df %>%
     select(
