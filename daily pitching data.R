@@ -117,6 +117,8 @@ if (!is.null(df) && nrow(df) > 0) {
     "SIERA", "xFIP", "xERA", "GB%", "FB%", "Hard%", "Barrel%", "CSW%"
   )
 
+  filtered_df$Player[filtered_df$Player == "Cameron Schlittler"] <- "Cam Schlittler"
+
   write_sheet(filtered_df, ss = sheet_id, sheet = sheetname)
   cat("Pitcher data has been saved to the Google Sheet:", sheet_id, "\n")
 } else {
