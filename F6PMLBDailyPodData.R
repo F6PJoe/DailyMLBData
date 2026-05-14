@@ -57,10 +57,12 @@ hitting_1d_url  <- build_hitting_url(get_start_date_str(1))
 hitting_7d_url  <- build_hitting_url(get_start_date_str(7))
 hitting_14d_url <- build_hitting_url(get_start_date_str(14))
 hitting_30d_url <- build_hitting_url(get_start_date_str(30))
+hitting_season_url <- build_hitting_url(format(season_start_date, "%Y-%m-%d"))
 
 pitching_1d_url  <- build_pitching_url(get_start_date_str(1))
 pitching_14d_url <- build_pitching_url(get_start_date_str(14))
 pitching_30d_url <- build_pitching_url(get_start_date_str(30))
+pitching_season_url <- build_pitching_url(format(season_start_date, "%Y-%m-%d"))
 
 # =============================================================================
 # SAFE API CALL
@@ -192,6 +194,7 @@ write_hitting(hitting_1d_url,  "MLB Hitter 1d Data",  "1d Hitters")
 write_hitting(hitting_7d_url,  "MLB Hitter 7d Data",  "7d Hitters")
 write_hitting(hitting_14d_url, "MLB Hitter 14d Data", "14d Hitters")
 write_hitting(hitting_30d_url, "MLB Hitter 30d Data", "30d Hitters")
+write_hitting(hitting_season_url, "MLB Hitter Season Data", "Season Hitters")
 
 # =============================================================================
 # RUN PITCHING
@@ -200,5 +203,6 @@ cat("\n=== PITCHING ===\n")
 write_pitching(pitching_1d_url,  "MLB Pitcher 1d Data",  "1d Pitchers")
 write_pitching(pitching_14d_url, "MLB Pitcher 14d Data", "14d Pitchers")
 write_pitching(pitching_30d_url, "MLB Pitcher 30d Data", "30d Pitchers")
+write_pitching(pitching_season_url, "MLB Pitcher Season Data", "Season Pitchers")
 
 cat("\nScript completed successfully!\n")
